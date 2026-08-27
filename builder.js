@@ -1,420 +1,156 @@
-/* ========================= TMDB CONFIG & GLOBALS ========================= */
-var tmdbDirector = "";
-var tmdbRating = "";
-var tmdbVoteCount = "";
-var tmdbProduction = "";
-
-// External PHP Proxy URL (Apna Free Hosting / Render Link Yahan Change Karein)
-var PROXY_URL = "https://your-free-hosting-domain.com/tmdb-proxy.php";
-
-/* ========================= HELPER FUNCTIONS ========================= */
-function getField(name) {
-    return document.querySelector('[name="' + name + '"]');
+/* =========================POST GENERATOR========================= */
+function last(f){    
+    var qs = decodeURIComponent("%22");    
+    f.text.value = "";    
+    var autoDate = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});    
+    var schemaId = "schema-data-" + makeSlug(f.blog_title.value);    
+    var isSeries = f.type.value === 'series';        
+    
+    /* BREADCRUMB */    
+    f.text.value = "<div class="+qs+"breadcrumb"+qs+">"+    
+    "<p class="+qs+"home"+qs+">"+    
+    "<a href='/'>Home</a> <font color='red'>»</font> "+    
+    "<a href='javascript:history.back()'>Back</a> <font color='red'>»</font> "+    
+    "<a href="+qs+"/page-movies/"+f.blog_cat.value+"/"+makeSlug(f.blog_cat.options[f.blog_cat.selectedIndex].text)+".html"+qs+">"+f.blog_cat.options[f.blog_cat.selectedIndex].text+"</a> <font color='red'>»</font> "+    
+    f.blog_title.value+"</p></div>"+        
+    
+    /* POSTER */    
+    "<p class="+qs+"showimage"+qs+">"+    
+    "<img class="+qs+"absmiddle"+qs+" src="+qs+f.poster.value+qs+" onerror="+qs+"this.onerror=null;this.src='https://dummyimage.com/220x260/cccccc/000000&text=No+Image';"+qs+" height="+qs+"260"+qs+" width="+qs+"220"+qs+" alt="+qs+f.blog_title.value+qs+" />"+    
+    "</p>"+        
+    
+    /* DETAILS */    
+    "<h2 class="+qs+"header"+qs+">Content Details</h2>"+    
+    "<div class="+qs+"description1"+qs+">"+    
+    "<div class="+qs+"catlist"+qs+"><b>Title:</b> <font color=#D2691E>"+f.blog_title.value+"</font></div>"+        
+    
+    /* WEB SERIES DETAILS & OTT ONLY IF WEB SERIES */    
+    (isSeries ?         
+        (f.season_num.value ? "<div class="+qs+"catlist"+qs+"><b>Season & Episodes:</b> <font color=red>"+f.season_num.value+" ("+(f.episode_num.value||"All Episodes")+")</font></div>" : "") +        
+        (f.ep_runtime.value ? "<div class="+qs+"catlist"+qs+"><b>Episode Runtime:</b> <font color=#9400D3>"+f.ep_runtime.value+"</font></div>" : "") +        
+        (f.series_status.value ? "<div class="+qs+"catlist"+qs+"><b>Series Status:</b> <font color=#28a745>"+f.series_status.value+"</font></div>" : "") +        
+        (f.ott_platform.value ? "<div class="+qs+"catlist"+qs+"><b>OTT Platform:</b> <font color=#007bff>"+f.ott_platform.value+"</font></div>" : "") +        
+        (f.ott_date.value ? "<div class="+qs+"catlist"+qs+"><b>OTT Release Date:</b> "+f.ott_date.value+"</div>" : "") +        
+        (f.ott_status.value ? "<div class="+qs+"catlist"+qs+"><b>Streaming Status:</b> <font color=#ffc107>"+f.ott_status.value+"</font></div>" : "")    
+    : "")+        
+    
+    /* AUDIO & SUBTITLE */    
+    "<div class="+qs+"catlist"+qs+"><b>Audio Format:</b> <font color=#008000>"+(f.audio_format.value || f.lng.value)+"</font></div>"+    
+    "<div class="+qs+"catlist"+qs+"><b>Subtitles:</b> <font color=#ff6600>"+f.subtitle_format.value+"</font></div>"+        
+    "<div class="+qs+"catlist"+qs+"><b>Genre:</b> <font color=#311DD6>"+f.genre.value+"</font></div>"+    
+    "<div class="+qs+"catlist"+qs+"><b>Category:</b> <a href="+qs+"/page-movies/"+f.blog_cat.value+"/"+makeSlug(f.blog_cat.options[f.blog_cat.selectedIndex].text)+".html"+qs+">"+f.blog_cat.options[f.blog_cat.selectedIndex].text+"</a></div>"+    
+    "<div class="+qs+"catlist"+qs+"><b>Starcast:</b> <font color=green>"+f.strcast.value.split(',').map(function(name){name=name.trim();var slug=makeSlug(name);return "<a href='/page-starcast/"+slug+".html'>"+name+"</a>";}).join(', ')+"</font></div>"+        
+    
+    /* SINGLE RELEASE DATE FOR MOVIES */    
+    (!isSeries ? "<div class="+qs+"catlist"+qs+"><b>"+(f.date.value.trim()!=='' ? 'Release Date' : 'Post Date')+":</b> "+(f.date.value.trim()!=='' ? f.date.value : autoDate)+"</div>" : "")+        
+    "<div class="+qs+"catlist"+qs+"><b>Duration:</b> <font color=#9400D3>"+f.dur.value+"</font></div>"+    
+    "<div class="+qs+"catlist"+qs+"><b>Quality:</b> <font color=red>"+f.qlt.value+"</font></div>"+    
+    "<div class="+qs+"catlist"+qs+"><b>Language:</b> <font color=green>"+f.lng.value+"</font></div>"+    
+    (tmdbRating && tmdbRating!=="0" ?"<div class="+qs+"catlist"+qs+"><b>IMDb Rating:</b> ⭐ "+tmdbRating+"/10 ("+tmdbVoteCount+" Votes)</div>" : "")+    
+    (tmdbDirector && tmdbDirector.trim()!==" " ?"<div class="+qs+"catlist"+qs+"><b>Director:</b> <font color=#008B8B>"+tmdbDirector+"</font></div>" : "")+    
+    "<div class="+qs+"catlist"+qs+"><b>Description:</b> <font color=#ff0080>"+(f.des.value.trim()? f.des.value : "Description Not Available")+"</font></div>"+    
+    "</div>";        
+    
+    /* TRAILER */    
+    var trailerEl = document.getElementById("tmdbTrailer");    
+    var trailerKey = trailerEl ? trailerEl.value.trim() : "";    
+    if(trailerKey !== ""){        
+        f.text.value += "<h2 class="+qs+"header"+qs+">Official Trailer</h2>"+        
+        "<div class="+qs+"trailer-box"+qs+" style="+qs+"position:relative;padding-bottom:56.25%;height:0;overflow:hidden;margin:10px 0;"+qs+">"+        
+        "<iframe src="+qs+"https://www.youtube.com/embed/"+trailerKey+qs+" style="+qs+"position:absolute;top:0;left:0;width:100%;height:100%;border:0;"+qs+" allowfullscreen></iframe>"+        
+        "</div>";    
+    }        
+    
+    /* DOWNLOAD LINKS */    
+    f.text.value += "<h2 class="+qs+"header"+qs+">"+f.blog_title.value+"</h2>"+    
+    "<div class="+qs+"download-center"+qs+">";        
+    var links=[f.link1,f.link2,f.link3,f.link4,f.link5,f.link6,f.link7,f.link8];    
+    var sizes=[f.size1,f.size2,f.size3,f.size4,f.size5,f.size6,f.size7,f.size8];    
+    var names=['480p / Ep Zip','720p / Season Zip','1080p','4K / HD','Server 1','Server 2','Server 3','Server 4'];        
+    
+    for(var i=0; i<links.length; i++){        
+        if(!links[i] || links[i].value.trim()=="") continue;        
+        var url=links[i].value.trim();        
+        if(url.indexOf("http")!==0) continue;                
+        var sizeHTML="";        
+        if(sizes[i] && sizes[i].value.trim()!=""){            
+            sizeHTML="<span class="+qs+"dl-size"+qs+">"+sizes[i].value+"</span>";        
+        }                
+        f.text.value +=        
+        "<div class="+qs+"catRow"+qs+">"+        
+        "<a class="+qs+"touch"+qs+        " href="+qs+"javascript:void(0)"+qs+        " onclick="+qs+        "var link='"+url+"';"+        "window.open('https://www.effectivecpmnetwork.com/xy7pmh8hm8?key=e93cdf0b6ef0395ba250bef6adabbbbf','_blank');"+        "setTimeout(function(){window.open(link,'_blank');},1000);"+        "return false;"+        qs+">"+        "⬇️ Download "+f.blog_title.value+" "+names[i]+"<br/>"+        sizeHTML+        "</a>"+        "</div>";    
+    }        
+    
+    /* Extra Dynamic Download Links Processing */    
+    var extraRows = document.querySelectorAll(".extra-link-row");    
+    extraRows.forEach(function(row){        
+        var nameVal = row.querySelector(".extra-name").value.trim() || "Download";        
+        var urlVal = row.querySelector(".extra-url").value.trim();        
+        var sizeVal = row.querySelector(".extra-size").value.trim();                
+        if(urlVal && urlVal.indexOf("http") === 0){            
+            var extraSizeHTML = sizeVal ? "<span class="+qs+"dl-size"+qs+">"+sizeVal+"</span>" : "";            
+            f.text.value +=            
+            "<div class="+qs+"catRow"+qs+">"+            
+            "<a class="+qs+"touch"+qs+            " href="+qs+"javascript:void(0)"+qs+            " onclick="+qs+            "var link='"+urlVal+"';"+            "window.open('https://www.effectivecpmnetwork.com/xy7pmh8hm8?key=e93cdf0b6ef0395ba250bef6adabbbbf','_blank');"+            "setTimeout(function(){window.open(link,'_blank');},1000);"+            "return false;"+            qs+">"+            "⬇️ Download "+f.blog_title.value+" "+nameVal+"<br/>"+            extraSizeHTML+            "</a>"+            "</div>";        
+        }    
+    });        
+    f.text.value += "</div>";        
+    
+    /* SCREENSHOTS */    
+    var screenshotHTML = "";    
+    if(f.ss1.value.trim()!==""){screenshotHTML += "<img class="+qs+"screen-img"+qs+" src="+qs+f.ss1.value+qs+" loading="+qs+"lazy"+qs+" />";}    
+    if(f.ss2.value.trim()!==""){screenshotHTML += "<img class="+qs+"screen-img"+qs+" src="+qs+f.ss2.value+qs+" loading="+qs+"lazy"+qs+" />";}    
+    if(f.ss3.value.trim()!==""){screenshotHTML += "<img class="+qs+"screen-img"+qs+" src="+qs+f.ss3.value+qs+" loading="+qs+"lazy"+qs+" />";}    
+    if(f.ss4.value.trim()!==""){screenshotHTML += "<img class="+qs+"screen-img"+qs+" src="+qs+f.ss4.value+qs+" loading="+qs+"lazy"+qs+" />";}        
+    
+    if(screenshotHTML!==""){        
+        f.text.value += "<h2 class="+qs+"header"+qs+">Screenshots</h2>"+"<div class="+qs+"screens-wrapper"+qs+">"+screenshotHTML+"</div>";    
+    }        
+    
+    /* TRENDING TAGS */    
+    var movieTitle=(f.blog_title.value||"").trim();    
+    var lang=(f.lng.value||"").trim();    
+    var quality=(f.qlt.value||"").trim();    
+    var genre=f.genre.value?f.genre.value.split(",")[0].trim():"";    
+    var year="";    
+    if(f.date&&f.date.value){        
+        var y=f.date.value.match(/\d{4}/);    
+        if(y) year=y[0];    
+    }    
+    var actor="";    
+    if(f.strcast&&f.strcast.value){        
+        actor=f.strcast.value.split(",")[0].trim();    
+    }    
+    var trendTitle=movieTitle;    
+    var searchTags=[trendTitle+" Movie Download",trendTitle+" Full Movie",trendTitle+" Watch Online",trendTitle+" Trailer",trendTitle+" Teaser",trendTitle+" HD Movie",trendTitle+" 480p Download",trendTitle+" 720p Download",trendTitle+" 1080p Download",trendTitle+" "+lang,trendTitle+" "+quality,trendTitle+" "+year,trendTitle+" "+genre+" Movie",trendTitle+" Direct Download"];        
+    
+    if(actor){        
+        searchTags.push(actor+" Movies");        
+        searchTags.push(trendTitle+" "+actor);    
+    }        
+    
+    var added={};    
+    var trendingHTML="<h2 class="+qs+"header"+qs+">Trending Searches</h2><div class="+qs+"trendingBox"+qs+">";    
+    for(var i=0;i<searchTags.length;i++){        
+        var tag = (searchTags[i] || "").trim();        
+        if(tag.length<2) continue;        
+        var key=tag.toLowerCase();        
+        if(added[key]) continue;        
+        added[key]=true;        
+        trendingHTML+="<a class="+qs+"tagbtn"+qs+" href='/page-search/"+encodeURIComponent(tag)+".html'>"+tag+"</a>";    
+    }    
+    trendingHTML+="</div>";    
+    f.text.value+=trendingHTML;        
+    
+    /* JSON LD SCHEMA */    
+    var cleanDesc = f.des.value.trim() ? f.des.value.replace(/"/g, '"').replace(/\n/g, ' ') : 'Description Not Available';    
+    var cleanTitle = f.blog_title.value.replace(/"/g, '"');        
+    
+    f.text.value += "<textarea id="+qs+schemaId+qs+" style="+qs+"display:none;visibility:hidden;width:0;height:0;overflow:hidden;opacity:0;position:absolute;"+qs+">"+    
+    '{' +    '"@context":"https://schema.org",' +    '"@type":"'+(isSeries?'TVSeries':'Movie')+'",' +    '"name":"'+cleanTitle+'",' +    '"image":"'+f.poster.value+'",' +    '"thumbnailUrl":"'+f.poster.value+'",' +    '"genre":"'+f.genre.value.replace(/"/g,'"')+'",' +    '"datePublished":"'+f.date.value+'",' +    '"inLanguage":"'+f.lng.value+'",' +    '"description":"'+cleanDesc+'",' +    '"duration":"'+f.dur.value+'",' +    '"actor":['+f.strcast.value.split(',').filter(Boolean).map(function(name){return '{"@type":"Person","name":"'+name.trim().replace(/"/g,'"')+'"}';}).join(',')+'],' +    '"director":{"@type":"Person","name":"'+(tmdbDirector || "Unknown")+'"},' +    '"aggregateRating":{' +    '"@type":"AggregateRating",' +    '"ratingValue":'+(parseFloat(tmdbRating) || 7.0)+',' +    '"bestRating":10,' +    '"worstRating":1,' +    '"ratingCount":'+((tmdbVoteCount && parseInt(tmdbVoteCount) > 0) ? parseInt(tmdbVoteCount) : 1000) +    '}' +    '}'+"</textarea>";        
+    
+    /* PAGE RELOAD */
+    setTimeout(function(){
+        location.reload();
+    }, 1500);
 }
-function getValue(name) {
-    var el = getField(name);
-    return el ? String(el.value || "").trim() : "";
-}
-function setValue(name, value) {
-    var el = getField(name);
-    if (el) el.value = value || "";
-}
-function makeSlug(text) {
-    return String(text || "")
-        .toLowerCase()
-        .trim()
-        .replace(/&/g, " and ")
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
-}
-function getYear(date) {
-    if (!date) return "";
-    var match = String(date).match(/\d{4}/);
-    return match ? match[0] : "";
-}
-function formatNumber(num) {
-    if (!num) return "";
-    return Number(num).toLocaleString("en-IN");
-}
-async function tmdbFetch(url) {
-    var response = await fetch(url);
-    if (!response.ok) {
-        throw new Error("TMDB Error: " + response.status);
-    }
-    return await response.json();
-}
-
-/* ========================= DYNAMIC EXTRA LINKS ========================= */
-function addMoreLinkField() {
-    var container = document.getElementById("extraLinksContainer");
-    if (!container) return;
-    var div = document.createElement("div");
-    div.className = "catlist extra-link-row";
-    div.style.marginBottom = "8px";
-    div.innerHTML =
-        '<input type="text" class="extra-name" style="width:70px; margin-right:4px;" placeholder="Ep / Label"/>' +
-        '<input type="text" class="extra-url" style="width:140px; margin-right:4px;" placeholder="Download Link"/>' +
-        '<input type="text" class="extra-size" style="width:60px; margin-right:4px;" placeholder="Size"/>' +
-        '<button type="button" onclick="this.parentElement.remove();" style="background:#ff4d4d; color:#fff; border:none; padding:4px 8px; border-radius:3px; cursor:pointer;">✖</button>';
-    container.appendChild(div);
-}
-
-/* ========================= TOGGLE FIELDS ========================= */
-function toggleSeriesAndOttFields() {
-    var typeEl = getField("type");
-    var sBlock = document.getElementById("seriesBlock");
-    var ottBlock = document.getElementById("ottBlock");
-    var isSeries = typeEl && typeEl.value === "series";
-    if (sBlock) sBlock.style.display = isSeries ? "block" : "none";
-    if (ottBlock) ottBlock.style.display = isSeries ? "block" : "none";
-}
-
-/* ========================= AUTO LINK GENERATOR ========================= */
-function autoGenerateLinks() {
-    var masterEl = document.getElementById("masterLink");
-    var sizeEl = document.getElementById("masterSize");
-    if (!masterEl || !masterEl.value.trim()) {
-        alert("Kripya Master Direct Link dalein!");
-        return;
-    }
-    var master = masterEl.value.trim();
-    var baseSize = sizeEl && sizeEl.value.trim() ? sizeEl.value.trim() : "";
-    var qualities = [
-        { check: "gen480", link: "link1", size: "size1", defaultSize: baseSize || "450MB" },
-        { check: "gen720", link: "link2", size: "size2", defaultSize: "950MB" },
-        { check: "gen1080", link: "link3", size: "size3", defaultSize: "2.1GB" },
-        { check: "gen4k", link: "link4", size: "size4", defaultSize: "5.5GB" }
-    ];
-    qualities.forEach(function(item) {
-        var check = document.getElementById(item.check);
-        var link = getField(item.link);
-        var size = getField(item.size);
-        if (check && check.checked) {
-            if (link) link.value = master;
-            if (size) {
-                size.value = (item.check === "gen480" && baseSize) ? baseSize : item.defaultSize;
-            }
-        }
-    });
-    alert("Multi-Quality Links Auto-Filled!");
-}
-
-/* ========================= FIXED TITLE GENERATOR ========================= */
-function updateMovieTitle(title, year, isSeries, lang) {
-    var blogTitleEl = getField("blog_title");
-    var typeEl = getField("type");
-    var qltEl = getField("qlt");
-    if (!blogTitleEl) return;
-    var quality = qltEl ? qltEl.value : "HDRip";
-    var audioFormat = getValue("audio_format");
-    var audioTag = "";
-    if (audioFormat) {
-        audioTag = audioFormat;
-    } else if (lang === "Hindi") {
-        audioTag = "Hindi Org Audio";
-    } else {
-        audioTag = "Dual Audio " + lang + "-Hindi";
-    }
-    if (isSeries) {
-        if (typeEl) typeEl.value = "series";
-        var season = getValue("season_num") || "Season 01";
-        blogTitleEl.value = title + " (" + year + ") " + season + " [" + audioTag + "] " + quality + " Download";
-    } else {
-        if (typeEl) typeEl.value = "movie";
-        blogTitleEl.value = title + " (" + year + ") Full Movie [" + audioTag + "] " + quality + " Download";
-    }
-}
-
-/* ========================= MAPS & OTT DETECTOR ========================= */
-var langMap = {
-    "hi": "Hindi", "en": "English", "ta": "Tamil", "te": "Telugu",
-    "ml": "Malayalam", "kn": "Kannada", "bn": "Bengali", "mr": "Marathi",
-    "pa": "Punjabi", "gu": "Gujarati", "ja": "Japanese", "ko": "Korean",
-    "zh": "Chinese", "es": "Spanish", "fr": "French", "de": "German"
-};
-
-function normalizeOTT(providerName) {
-    if (!providerName) return "Other";
-    var name = providerName.toLowerCase();
-    if (name.indexOf("netflix") > -1) return "Netflix";
-    if (name.indexOf("amazon") > -1 || name.indexOf("prime") > -1) return "Prime Video";
-    if (name.indexOf("hotstar") > -1 || name.indexOf("jio") > -1) return "JioHotstar";
-    if (name.indexOf("zee5") > -1 || name.indexOf("zee") > -1) return "ZEE5";
-    if (name.indexOf("sony") > -1 || name.indexOf("liv") > -1) return "SonyLIV";
-    return "Other";
-}
-
-/* ========================= TMDB FETCH (SECURE PROXY) ========================= */
-async function fetchTMDB() {
-    var movieInput = document.getElementById("tmdbMovie");
-    if (!movieInput || !movieInput.value.trim()) {
-        alert("Enter Movie / Web Series Name");
-        return;
-    }
-    var query = movieInput.value.trim();
-    try {
-        var typeEl = getField("type");
-        var isSeries = typeEl ? (typeEl.value === "series") : false;
-        var primaryType = isSeries ? "tv" : "movie";
-        var secondaryType = isSeries ? "movie" : "tv";
-
-        var searchData = await tmdbFetch(PROXY_URL + "?action=search&type=" + primaryType + "&query=" + encodeURIComponent(query));
-        var actualType = primaryType;
-
-        if (!searchData.results || searchData.results.length === 0) {
-            searchData = await tmdbFetch(PROXY_URL + "?action=search&type=" + secondaryType + "&query=" + encodeURIComponent(query));
-            actualType = secondaryType;
-        }
-        if (!searchData.results || searchData.results.length === 0) {
-            alert("Movie / Web Series Not Found");
-            return;
-        }
-
-        var m = searchData.results[0];
-        isSeries = (actualType === "tv");
-        var title = isSeries ? (m.name || m.original_name) : (m.title || m.original_title);
-        var release = isSeries ? m.first_air_date : m.release_date;
-        var year = getYear(release);
-
-        if (typeEl) typeEl.value = isSeries ? "series" : "movie";
-        toggleSeriesAndOttFields();
-        setValue("poster", m.poster_path ? "https://image.tmdb.org/t/p/w500" + m.poster_path : "");
-        setValue("des", m.overview || "");
-        setValue("date", release || "");
-        if (isSeries) setValue("ott_date", release || "");
-
-        /* FULL DETAILS */
-        var d = await tmdbFetch(PROXY_URL + "?action=details&type=" + actualType + "&id=" + m.id);
-        tmdbRating = d.vote_average ? Number(d.vote_average).toFixed(1) : "";
-        tmdbVoteCount = d.vote_count || "";
-        if (d.genres) setValue("genre", d.genres.map(function(g) { return g.name; }).join(", "));
-        var lang = d.original_language ? (langMap[d.original_language] || d.original_language.toUpperCase()) : "Hindi";
-        setValue("lng", lang);
-
-        if (!isSeries) {
-            if (d.runtime) setValue("dur", d.runtime + " Min");
-        } else {
-            var seasonEl = getField("season_num");
-            var episodeEl = getField("episode_num");
-            var runtimeVal = (d.episode_run_time && d.episode_run_time.length) ? d.episode_run_time[0] + " Min / Episode" : "45 Min / Episode";
-            if (d.number_of_seasons && seasonEl) seasonEl.value = "Season " + (d.number_of_seasons < 10 ? '0' : '') + d.number_of_seasons;
-            if (d.number_of_episodes && episodeEl) episodeEl.value = "Episodes 01-" + d.number_of_episodes;
-            setValue("dur", runtimeVal);
-            setValue("ep_runtime", runtimeVal);
-        }
-
-        /* OTT PROVIDER */
-        var ottSelect = getField("ott_platform");
-        if (ottSelect) {
-            try {
-                var providerData = await tmdbFetch(PROXY_URL + "?action=providers&type=" + actualType + "&id=" + m.id);
-                var countryData = providerData.results ? (providerData.results.IN || providerData.results.US || null) : null;
-                var providers = countryData && countryData.flatrate ? countryData.flatrate : [];
-                if (providers.length) ottSelect.value = normalizeOTT(providers[0].provider_name);
-            } catch (ottErr) { console.log("OTT Fetch Error: ", ottErr); }
-        }
-
-        /* CAST & CREW */
-        var creditData = await tmdbFetch(PROXY_URL + "?action=credits&type=" + actualType + "&id=" + m.id);
-        if (creditData.cast && creditData.cast.length) {
-            setValue("strcast", creditData.cast.slice(0, 10).map(function(c) { return c.name; }).join(", "));
-        }
-        tmdbDirector = "";
-        if (creditData.crew) {
-            var director = creditData.crew.find(function(c) { return c.job === "Director" || c.job === "Executive Producer"; });
-            if (director) tmdbDirector = director.name;
-        }
-
-        /* TRAILER */
-        try {
-            var videoData = await tmdbFetch(PROXY_URL + "?action=videos&type=" + actualType + "&id=" + m.id);
-            var trailerInput = document.getElementById("tmdbTrailer");
-            if (videoData.results && trailerInput) {
-                var trailerObj = videoData.results.find(function(v) { return v.type === "Trailer" && v.site === "YouTube"; }) || videoData.results[0];
-                if (trailerObj && trailerObj.key) trailerInput.value = trailerObj.key;
-            }
-        } catch (vidErr) { console.log("Trailer Error: ", vidErr); }
-
-        /* SCREENSHOTS */
-        try {
-            var ssData = await tmdbFetch(PROXY_URL + "?action=images&type=" + actualType + "&id=" + m.id);
-            if (ssData.backdrops) {
-                var shots = ssData.backdrops.slice(0, 4);
-                for (var i = 1; i <= 4; i++) {
-                    var ss = getField("ss" + i);
-                    if (ss) ss.value = shots[i - 1] ? "https://image.tmdb.org/t/p/w780" + shots[i - 1].file_path : "";
-                }
-            }
-        } catch (imgErr) { console.log("Screenshot Error: ", imgErr); }
-
-        updateMovieTitle(title, year, isSeries, lang);
-        var qltEl = getField("qlt");
-        var audioEl = getField("audio_format");
-        if (qltEl) qltEl.onchange = function() { updateMovieTitle(title, year, isSeries, lang); };
-        if (audioEl) audioEl.onchange = function() { updateMovieTitle(title, year, isSeries, lang); };
-        alert(isSeries ? "Web Series Data Loaded!" : "Movie Data Loaded!");
-    } catch (e) {
-        alert("Fetch Failed. Check Console.");
-        console.error(e);
-    }
-}
-
-/* ========================= WAPKIZ POST BUILDER ========================= */
-function last(f) {
-    if (!f || !f.text) return;
-    var qs = '"';
-    f.text.value = "";
-    var autoDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
-    var title = getValue("blog_title");
-    var schemaId = "schema-data-" + makeSlug(title);
-    var isSeries = f.type && f.type.value === 'series';
-    var catVal = f.blog_cat ? f.blog_cat.value : "";
-    var catText = (f.blog_cat && f.blog_cat.selectedIndex >= 0) ? f.blog_cat.options[f.blog_cat.selectedIndex].text : "Movies";
-
-    /* BREADCRUMB */
-    f.text.value += "<div class=" + qs + "breadcrumb" + qs + ">" +
-        "<p class=" + qs + "home" + qs + ">" +
-        "<a href='/'>Home</a> <font color='red'>»</font> " +
-        "<a href='javascript:history.back()'>Back</a> <font color='red'>»</font> " +
-        "<a href=" + qs + "/page-movies/" + catVal + "/" + makeSlug(catText) + ".html" + qs + ">" + catText + "</a> <font color='red'>»</font> " +
-        title + "</p></div>";
-
-    /* POSTER */
-    var poster = getValue("poster") || "https://dummyimage.com/220x260/cccccc/000000&text=No+Image";
-    f.text.value += "<p class=" + qs + "showimage" + qs + ">" +
-        "<img class=" + qs + "absmiddle" + qs + " src=" + qs + poster + qs + " onerror=" + qs + "this.onerror=null;this.src='https://dummyimage.com/220x260/cccccc/000000&text=No+Image';" + qs + " height=" + qs + "260" + qs + " width=" + qs + "220" + qs + " alt=" + qs + title + qs + " />" +
-        "</p>";
-
-    /* CONTENT DETAILS */
-    f.text.value += "<h2 class=" + qs + "header" + qs + ">Content Details</h2>" +
-        "<div class=" + qs + "description1" + qs + ">" +
-        "<div class=" + qs + "catlist" + qs + "><b>Title:</b> <font color=#D2691E>" + title + "</font></div>";
-    if (isSeries) {
-        if (getValue("season_num")) f.text.value += "<div class=" + qs + "catlist" + qs + "><b>Season & Episodes:</b> <font color=red>" + getValue("season_num") + " (" + (getValue("episode_num") || "All Episodes") + ")</font></div>";
-        if (getValue("ep_runtime")) f.text.value += "<div class=" + qs + "catlist" + qs + "><b>Episode Runtime:</b> <font color=#9400D3>" + getValue("ep_runtime") + "</font></div>";
-        if (getValue("series_status")) f.text.value += "<div class=" + qs + "catlist" + qs + "><b>Series Status:</b> <font color=#28a745>" + getValue("series_status") + "</font></div>";
-        if (getValue("ott_platform")) f.text.value += "<div class=" + qs + "catlist" + qs + "><b>OTT Platform:</b> <font color=#007bff>" + getValue("ott_platform") + "</font></div>";
-        if (getValue("ott_date")) f.text.value += "<div class=" + qs + "catlist" + qs + "><b>OTT Release Date:</b> " + getValue("ott_date") + "</div>";
-        if (getValue("ott_status")) f.text.value += "<div class=" + qs + "catlist" + qs + "><b>Streaming Status:</b> <font color=#ffc107>" + getValue("ott_status") + "</font></div>";
-    }
-    f.text.value += "<div class=" + qs + "catlist" + qs + "><b>Audio Format:</b> <font color=#008000>" + (getValue("audio_format") || getValue("lng")) + "</font></div>" +
-        "<div class=" + qs + "catlist" + qs + "><b>Subtitles:</b> <font color=#ff6600>" + getValue("subtitle_format") + "</font></div>" +
-        "<div class=" + qs + "catlist" + qs + "><b>Genre:</b> <font color=#311DD6>" + getValue("genre") + "</font></div>" +
-        "<div class=" + qs + "catlist" + qs + "><b>Category:</b> <a href=" + qs + "/page-movies/" + catVal + "/" + makeSlug(catText) + ".html" + qs + ">" + catText + "</a></div>";
-    if (getValue("strcast")) {
-        var castLinks = getValue("strcast").split(',').map(function(name) {
-            name = name.trim();
-            return "<a href='/page-starcast/" + makeSlug(name) + ".html'>" + name + "</a>";
-        }).join(', ');
-        f.text.value += "<div class=" + qs + "catlist" + qs + "><b>Starcast:</b> <font color=green>" + castLinks + "</font></div>";
-    }
-    if (!isSeries) {
-        f.text.value += "<div class=" + qs + "catlist" + qs + "><b>" + (getValue("date") ? 'Release Date' : 'Post Date') + ":</b> " + (getValue("date") || autoDate) + "</div>";
-    }
-    f.text.value += "<div class=" + qs + "catlist" + qs + "><b>Duration:</b> <font color=#9400D3>" + getValue("dur") + "</font></div>" +
-        "<div class=" + qs + "catlist" + qs + "><b>Quality:</b> <font color=red>" + getValue("qlt") + "</font></div>" +
-        "<div class=" + qs + "catlist" + qs + "><b>Language:</b> <font color=green>" + getValue("lng") + "</font></div>";
-    if (tmdbRating && tmdbRating !== "0") {
-        f.text.value += "<div class=" + qs + "catlist" + qs + "><b>IMDb Rating:</b> ⭐ " + tmdbRating + "/10 (" + formatNumber(tmdbVoteCount) + " Votes)</div>";
-    }
-    if (tmdbDirector) {
-        f.text.value += "<div class=" + qs + "catlist" + qs + "><b>Director:</b> <font color=#008B8B>" + tmdbDirector + "</font></div>";
-    }
-    f.text.value += "<div class=" + qs + "catlist" + qs + "><b>Description:</b> <font color=#ff0080>" + (getValue("des") || "Description Not Available") + "</font></div></div>";
-
-    /* TRAILER */
-    var trailerEl = document.getElementById("tmdbTrailer");
-    var trailerKey = trailerEl ? trailerEl.value.trim() : "";
-    if (trailerKey !== "") {
-        f.text.value += "<h2 class=" + qs + "header" + qs + ">Official Trailer</h2>" +
-            "<div class=" + qs + "trailer-box" + qs + " style=" + qs + "position:relative;padding-bottom:56.25%;height:0;overflow:hidden;margin:10px 0;" + qs + ">" +
-            "<iframe src=" + qs + "https://www.youtube.com/embed/" + trailerKey + qs + " style=" + qs + "position:absolute;top:0;left:0;width:100%;height:100%;border:0;" + qs + " allowfullscreen></iframe>" +
-            "</div>";
-    }
-
-    /* DOWNLOAD LINKS */
-    f.text.value += "<h2 class=" + qs + "header" + qs + ">" + title + "</h2><div class=" + qs + "download-center" + qs + ">";
-    var names = ['480p / Ep Zip', '720p / Season Zip', '1080p', '4K / HD', 'Server 1', 'Server 2', 'Server 3', 'Server 4'];
-    for (var i = 1; i <= 8; i++) {
-        var url = getValue("link" + i);
-        var size = getValue("size" + i);
-        if (!url || url.indexOf("http") !== 0) continue;
-        var sizeHTML = size ? "<span class=" + qs + "dl-size" + qs + ">" + size + "</span>" : "";
-        f.text.value += "<div class=" + qs + "catRow" + qs + ">" +
-            "<a class=" + qs + "touch" + qs + " href=" + qs + "javascript:void(0)" + qs + " onclick=" + qs + "var link='" + url + "';" + "window.open('https://www.effectivecpmnetwork.com/xy7pmh8hm8?key=e93cdf0b6ef0395ba250bef6adabbbbf','_blank');" + "setTimeout(function(){window.open(link,'_blank');},1000);" + "return false;" + qs + ">" +
-            "⬇️ Download " + title + " " + names[i - 1] + "<br/>" + sizeHTML +
-            "</a></div>";
-    }
-
-    /* EXTRA LINKS */
-    var extraRows = document.querySelectorAll(".extra-link-row");
-    for (var j = 0; j < extraRows.length; j++) {
-        var row = extraRows[j];
-        var nameInput = row.querySelector(".extra-name");
-        var urlInput = row.querySelector(".extra-url");
-        var sizeInput = row.querySelector(".extra-size");
-        var nameVal = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : "Download";
-        var urlVal = urlInput ? urlInput.value.trim() : "";
-        var sizeVal = sizeInput ? sizeInput.value.trim() : "";
-        if (urlVal && urlVal.indexOf("http") === 0) {
-            var extraSizeHTML = sizeVal ? "<span class=" + qs + "dl-size" + qs + ">" + sizeVal + "</span>" : "";
-            f.text.value += "<div class=" + qs + "catRow" + qs + ">" +
-                "<a class=" + qs + "touch" + qs + " href=" + qs + "javascript:void(0)" + qs + " onclick=" + qs + "var link='" + urlVal + "';" + "window.open('https://www.effectivecpmnetwork.com/xy7pmh8hm8?key=e93cdf0b6ef0395ba250bef6adabbbbf','_blank');" + "setTimeout(function(){window.open(link,'_blank');},1000);" + "return false;" + qs + ">" +
-                "⬇️ Download " + title + " " + nameVal + "<br/>" + extraSizeHTML +
-                "</a></div>";
-        }
-    }
-    f.text.value += "</div>";
-
-    /* SCREENSHOTS */
-    var screenshotHTML = "";
-    for (var s = 1; s <= 4; s++) {
-        var imgUrl = getValue("ss" + s);
-        if (imgUrl) {
-            screenshotHTML += "<img class=" + qs + "screen-img" + qs + " src=" + qs + imgUrl + qs + " loading=" + qs + "lazy" + qs + " />";
-        }
-    }
-    if (screenshotHTML !== "") {
-        f.text.value += "<h2 class=" + qs + "header" + qs + ">Screenshots</h2><div class=" + qs + "screens-wrapper" + qs + ">" + screenshotHTML + "</div>";
-    }
-
-    /* TRENDING TAGS */
-    var genreFirst = getValue("genre") ? getValue("genre").split(",")[0].trim() : "";
-    var yearVal = getYear(getValue("date"));
-    var actorFirst = getValue("strcast") ? getValue("strcast").split(",")[0].trim() : "";
-    var searchTags = [
-        title + " Download", title + " Full Movie", title + " Watch Online",
-        title + " Trailer", title + " HD Movie", title + " 480p Download",
-        title + " 720p Download", title + " 1080p Download", title + " " + getValue("lng"),
-        title + " " + getValue("qlt"), title + " " + yearVal, title + " " + genreFirst + " Movie",
-        title + " Direct Download"
-    ];
-    if (actorFirst) {
-        searchTags.push(actorFirst + " Movies");
-        searchTags.push(title + " " + actorFirst);
-    }
-    var added = {};
-    var trendingHTML = "<h2 class=" + qs + "header" + qs + ">Trending Searches</h2><div class=" + qs + "trendingBox" + qs + ">";
-    for (var k = 0; k < searchTags.length; k++) {
-        var tag = (searchTags[k] || "").trim();
-        if (tag.length < 2) continue;
-        var key = tag.toLowerCase();
-        if (added[key]) continue;
-        added[key] = true;
-        trendingHTML += "<a class=" + qs + "tagbtn" + qs + " href='/page-search/" + encodeURIComponent(tag) + ".html'>" + tag + "</a>";
-    }
-    trendingHTML += "</div>";
-    f.text.value += trendingHTML;
-
-    /* JSON-LD SCHEMA */
-    var cleanDesc = getValue("des") ? getValue("des").replace(/"/g, "'").replace(/\n/g, ' ') : 'Description Not Available';
-    var cleanTitle = title.replace(/"/g, "'");
-    f.text.value += "<textarea id=" + qs + schemaId + qs + " style=" + qs + "display:none;visibility:hidden;width:0;height:0;overflow:hidden;opacity:0;position:absolute;" + qs + ">" +
-        '{"@context":"https://schema.org","@type":"' + (isSeries ? 'TVSeries' : 'Movie') + '","name":"' + cleanTitle + '","image":"' + poster + '","thumbnailUrl":"' + poster + '","genre":"' + getValue("genre").replace(/"/g, "'") + '","datePublished":"' + getValue("date") + '","inLanguage":"' + getValue("lng") + '","description":"' + cleanDesc + '","duration":"' + getValue("dur") + '"}' +
-        "</textarea>";
-}
-
-/* ========================= DOM READY ========================= */
-document.addEventListener("DOMContentLoaded", function() {
-    toggleSeriesAndOttFields();
-});

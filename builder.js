@@ -1,3 +1,288 @@
+/* =========================TMDB API========================= */
+var tmdbKey = "241f3ce228196a68cc8d338aedcdc094";
+
+/* =========================TMDB EXTRA DATA========================= */
+var tmdbDirector = "";
+var tmdbRating = "";
+var tmdbVoteCount = "";
+var tmdbProduction = "";
+var tmdbCountry = "";
+
+/* =========================DYNAMIC ADD MORE LINK========================= */
+function addMoreLinkField(){  
+  var container = document.getElementById("extraLinksContainer");  
+  var div = document.createElement("div");  
+  div.className = "catlist extra-link-row";  
+  div.style.marginBottom = "8px";  
+  div.innerHTML = '<input type="text" class="extra-name" style="width:70px; margin-right:4px;" placeholder="Ep / Label"/>' +                  
+                  '<input type="text" class="extra-url" style="width:140px; margin-right:4px;" placeholder="Download Link"/>' +                  
+                  '<input type="text" class="extra-size" style="width:60px; margin-right:4px;" placeholder="Size"/>' +                  
+                  '<button type="button" onclick="this.parentElement.remove();" style="background:#ff4d4d; color:#fff; border:none; padding:4px 8px; border-radius:3px; cursor:pointer;">✖</button>';  
+  container.appendChild(div);
+}
+
+/* =========================SHOW/HIDE SERIES & OTT FIELDS========================= */
+function toggleSeriesAndOttFields(){    
+    var typeEl = document.querySelector('[name="type"]');    
+    var sBlock = document.getElementById('seriesBlock');    
+    var ottBlock = document.getElementById('ottBlock');        
+    if(typeEl){        
+        if(typeEl.value === 'series'){            
+            if(sBlock) sBlock.style.display = 'block';            
+            if(ottBlock) ottBlock.style.display = 'block';        
+        } else {            
+            if(sBlock) sBlock.style.display = 'none';            
+            if(ottBlock) ottBlock.style.display = 'none';        
+        }    
+    }
+}
+
+/* =========================MULTI-QUALITY LINK GENERATOR========================= */
+function autoGenerateLinks(){    
+    var masterEl = document.getElementById("masterLink");    
+    var sizeEl = document.getElementById("masterSize");        
+    if(!masterEl || !masterEl.value.trim()){        
+        alert("Kripya Master Direct Link dalein!");        
+        return;    
+    }        
+    var master = masterEl.value.trim();    
+    var baseSize = sizeEl && sizeEl.value.trim() ? sizeEl.value.trim() : "400MB";        
+    var l1 = document.querySelector('[name="link1"]'), s1 = document.querySelector('[name="size1"]');    
+    var l2 = document.querySelector('[name="link2"]'), s2 = document.querySelector('[name="size2"]');    
+    var l3 = document.querySelector('[name="link3"]'), s3 = document.querySelector('[name="size3"]');    
+    var l4 = document.querySelector('[name="link4"]'), s4 = document.querySelector('[name="size4"]');        
+    if(l1) l1.value = ""; if(s1) s1.value = "";    
+    if(l2) l2.value = ""; if(s2) s2.value = "";    
+    if(l3) l3.value = ""; if(s3) s3.value = "";    
+    if(l4) l4.value = ""; if(s4) s4.value = "";        
+    var g480 = document.getElementById("gen480");    
+    var g720 = document.getElementById("gen720");    
+    var g1080 = document.getElementById("gen1080");    
+    var g4k = document.getElementById("gen4k");        
+    if(g480 && g480.checked && l1 && s1){        
+        l1.value = master;        
+        s1.value = baseSize.toLowerCase().includes("gb") ? "450MB" : baseSize;    
+    }    
+    if(g720 && g720.checked && l2 && s2){        
+        l2.value = master;        
+        s2.value = baseSize.toLowerCase().includes("gb") ? baseSize : "950MB";    
+    }    
+    if(g1080 && g1080.checked && l3 && s3){        
+        l3.value = master;        
+        s3.value = "2.1GB";    
+    }    
+    if(g4k && g4k.checked && l4 && s4){        
+        l4.value = master;        
+        s4.value = "5.5GB";    
+    }        
+    alert("Multi-Quality Links Auto-Filled!");
+}
+
+/* =========================SLUG========================= */
+function makeSlug(text){    
+    return text ? text.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'') : '';
+}
+
+/* =========================TMDB FETCH========================= */
+async function fetchTMDB(){    
+    var movieInput = document.getElementById("tmdbMovie");    
+    if(!movieInput || movieInput.value.trim() === ""){        
+        alert("Enter Movie Name");        
+        return;    
+    }        
+    var movie = movieInput.value.trim();        
+    try{        
+        var typeEl = document.querySelector('[name="type"]');        
+        var isSeries = typeEl ? (typeEl.value == "series") : false;                
+        var searchUrl = "https://api.themoviedb.org/3/search/" + (isSeries ? "tv" : "movie") + "?api_key=" + tmdbKey + "&query=" + encodeURIComponent(movie);                
+        let response = await fetch(searchUrl);        
+        if (!response.ok) throw new Error("TMDB Response Failed: " + response.statusText);
+        let data = await response.json();                
+
+        if(!data.results || data.results.length === 0){            
+            searchUrl = "https://api.themoviedb.org/3/search/" + (isSeries ? "movie" : "tv") + "?api_key=" + tmdbKey + "&query=" + encodeURIComponent(movie);            
+            response = await fetch(searchUrl);            
+            data = await response.json();                        
+            if(!data.results || data.results.length === 0){                
+                alert("Movie / Web Series Not Found");                
+                return;            
+            }            
+            isSeries = !isSeries;        
+        }                
+
+        var m = data.results[0];        
+        var title = isSeries ? m.name : m.title;        
+        var release = isSeries ? m.first_air_date : m.release_date;        
+        var year = release ? release.substring(0,4) : "";                
+        
+        var posterEl = document.querySelector('[name="poster"]');        
+        var desEl = document.querySelector('[name="des"]');        
+        var dateEl = document.querySelector('[name="date"]');        
+        var ottDateEl = document.querySelector('[name="ott_date"]');                
+
+        if(posterEl) posterEl.value = m.poster_path ? "https://image.tmdb.org/t/p/w500" + m.poster_path : "https://dummyimage.com/300x450/cccccc/000000&text=No+Image";        
+        if(desEl) desEl.value = m.overview || "";        
+        if(dateEl) dateEl.value = release || "";        
+        if(ottDateEl) ottDateEl.value = isSeries ? (release || "") : "";                
+
+        var detailUrl = "https://api.themoviedb.org/3/" + (isSeries ? "tv" : "movie") + "/" + m.id + "?api_key=" + tmdbKey;        
+        let details = await fetch(detailUrl);        
+        let d = await details.json();                
+
+        tmdbCountry = "";        
+        if (isSeries) {            
+            if (d.origin_country && d.origin_country.length) tmdbCountry = d.origin_country[0];        
+        } else {            
+            if (d.production_countries && d.production_countries.length) tmdbCountry = d.production_countries[0].iso_3166_1;        
+        }                
+
+        tmdbRating = d.vote_average || "";        
+        tmdbVoteCount = d.vote_count || "";                
+
+        if(d.production_companies && d.production_companies.length){            
+            tmdbProduction = d.production_companies[0].name;        
+        }                
+
+        var genreEl = document.querySelector('[name="genre"]');        
+        if(d.genres && genreEl){            
+            genreEl.value = d.genres.map(function(g){ return g.name; }).join(", ");        
+        }                
+        
+        var durEl = document.querySelector('[name="dur"]');        
+        var sNumEl = document.querySelector('[name="season_num"]');        
+        var epNumEl = document.querySelector('[name="episode_num"]');        
+        var epRunEl = document.querySelector('[name="ep_runtime"]');                
+
+        toggleSeriesAndOttFields();        
+        if(isSeries){            
+            if(d.number_of_seasons && sNumEl){                
+                sNumEl.value = "Season " + (d.number_of_seasons < 10 ? '0' : '') + d.number_of_seasons;            
+            }            
+            if(d.number_of_episodes && epNumEl){                
+                epNumEl.value = "Episodes 01-" + d.number_of_episodes;            
+            }            
+            var runtimeVal = (d.episode_run_time && d.episode_run_time.length) ? d.episode_run_time[0] + " Min / Episode" : "45 Min / Episode";            
+            if(durEl) durEl.value = runtimeVal;            
+            if(epRunEl) epRunEl.value = runtimeVal;        
+        }else{            
+            if(d.runtime && durEl){                
+                durEl.value = d.runtime + " Min";            
+            }        
+        }                
+        
+        var lang = "Hindi";        
+        if(d.original_language){            
+            lang = d.original_language;            
+            if(lang=="hi") lang="Hindi";            
+            else if(lang=="en") lang="English";            
+            else if(lang=="ta") lang="Tamil";            
+            else if(lang=="te") lang="Telugu";            
+            else if(lang=="ml") lang="Malayalam";            
+            else if(lang=="kn") lang="Kannada";            
+            else if(lang=="bn") lang="Bengali";            
+            else if(lang=="ja") lang="Japanese";            
+            else if(lang=="ko") lang="Korean";            
+            else if(lang=="es") lang="Spanish";                        
+            var lngEl = document.querySelector('[name="lng"]');            
+            if(lngEl) lngEl.value = lang;        
+        }                
+        
+        /* AUTO FETCH OTT PROVIDERS (FOR SERIES ONLY) */        
+        var ottSelect = document.querySelector('[name="ott_platform"]');        
+        if (isSeries) {            
+            try {                
+                var providerUrl = "https://api.themoviedb.org/3/tv/" + m.id + "/watch/providers?api_key=" + tmdbKey;                
+                let providerRes = await fetch(providerUrl);                
+                let providerData = await providerRes.json();                                
+                var providersIN = providerData.results && providerData.results.IN ? providerData.results.IN.flatrate : null;                
+                if(!providersIN && providerData.results && providerData.results.US){                    
+                    providersIN = providerData.results.US.flatrate;                
+                }                                
+                if(providersIN && providersIN.length > 0 && ottSelect){                    
+                    var pName = providersIN[0].provider_name.toLowerCase();                                        
+                    if(pName.includes("netflix")) ottSelect.value = "Netflix";                    
+                    else if(pName.includes("amazon") || pName.includes("prime")) ottSelect.value = "Prime Video";                    
+                    else if(pName.includes("hotstar") || pName.includes("jio")) ottSelect.value = "JioHotstar";                    
+                    else if(pName.includes("zee5") || pName.includes("zee")) ottSelect.value = "ZEE5";                    
+                    else if(pName.includes("sony") || pName.includes("liv")) ottSelect.value = "SonyLIV";                    
+                    else ottSelect.value = "Other";                
+                }            
+            } catch(ottErr) {                
+                console.log("OTT Fetch Error: ", ottErr);            
+            }        
+        }        
+
+        /* AUTO TITLE */        
+        var qltEl = document.querySelector('[name="qlt"]');        
+        var blogTitleEl = document.querySelector('[name="blog_title"]');                
+        function updateMovieTitle(){            
+            if(!blogTitleEl || !typeEl) return;            
+            var qlt = qltEl ? qltEl.value : '720p';            
+            if(isSeries){                
+                typeEl.value = "series";                
+                var sNum = (sNumEl && sNumEl.value) ? sNumEl.value : "Season 1";                
+                if(lang == "Hindi"){                    
+                    blogTitleEl.value = title + " (" + year + ") " + sNum + " Hindi Web Series " + qlt + " 480p 720p 1080p Download";                
+                }else{                    
+                    blogTitleEl.value = title + " (" + year + ") " + sNum + " (" + lang + " + Hindi) Dual Audio Web Series " + qlt + " 480p 720p 1080p Download";                
+                }            
+            }else{                
+                typeEl.value = "movie";                
+                if(lang == "Hindi"){                    
+                    blogTitleEl.value = title + " (" + year + ") Hindi Full Movie " + qlt + " 480p 720p 1080p HD Download";                
+                }else{                    
+                    blogTitleEl.value = title + " (" + year + ") " + lang + " Hindi Dubbed Full Movie " + qlt + " 480p 720p 1080p HD Download";                
+                }            
+            }        
+        }        
+        updateMovieTitle();        
+        if(qltEl) qltEl.onchange = updateMovieTitle;                
+        
+        /* CAST & DIRECTOR */        
+        var creditUrl = "https://api.themoviedb.org/3/" + (isSeries ? "tv" : "movie") + "/" + m.id + "/" + (isSeries ? "aggregate_credits" : "credits") + "?api_key=" + tmdbKey;        
+        let castApi = await fetch(creditUrl);        
+        let castData = await castApi.json();                
+        var castEl = document.querySelector('[name="strcast"]');        
+        if(castData.cast && castEl){            
+            castEl.value = castData.cast.slice(0,10).map(function(c){return c.name;}).join(", ");        
+        }                
+        tmdbDirector = "";        
+        if(castData.crew){            
+            var director = castData.crew.find(function(person){return person.job == "Director";});            
+            if(director) tmdbDirector = director.name;        
+        }                
+        
+        /* YOUTUBE TRAILER */        
+        let videoUrl = "https://api.themoviedb.org/3/" + (isSeries ? "tv" : "movie") + "/" + m.id + "/videos?api_key=" + tmdbKey;        
+        let videoApi = await fetch(videoUrl);        
+        let videoData = await videoApi.json();        
+        var trailerInput = document.getElementById("tmdbTrailer");                
+        if(videoData.results && videoData.results.length > 0 && trailerInput){            
+            var trailerObj = videoData.results.find(v => v.type === "Trailer" && v.site === "YouTube") || videoData.results[0];            
+            if(trailerObj && trailerObj.key){                
+                trailerInput.value = trailerObj.key;            
+            }        
+        }                
+        
+        /* SCREENSHOTS */        
+        let ssApi = await fetch("https://api.themoviedb.org/3/" + (isSeries ? "tv" : "movie") + "/" + m.id + "/images?api_key=" + tmdbKey);        
+        let ssData = await ssApi.json();        
+        if(ssData.backdrops){            
+            var shots = ssData.backdrops.slice(0,4);            
+            var ss1 = document.querySelector('[name="ss1"]'), ss2 = document.querySelector('[name="ss2"]');            
+            var ss3 = document.querySelector('[name="ss3"]'), ss4 = document.querySelector('[name="ss4"]');            
+            if(shots[0] && ss1) ss1.value = "https://image.tmdb.org/t/p/w780" + shots[0].file_path;            
+            if(shots[1] && ss2) ss2.value = "https://image.tmdb.org/t/p/w780" + shots[1].file_path;            
+            if(shots[2] && ss3) ss3.value = "https://image.tmdb.org/t/p/w780" + shots[2].file_path;            
+            if(shots[3] && ss4) ss4.value = "https://image.tmdb.org/t/p/w780" + shots[3].file_path;        
+        }                
+        alert(isSeries ? "Web Series Data Loaded" : "Movie Data Loaded");    
+    }catch(e){        
+        alert("Fetch Error Details: " + e.message);        
+        console.error(e);    
+    }
+}
+
 /* =========================POST GENERATOR========================= */
 function last(f){    
     var qs = decodeURIComponent("%22");    
@@ -149,7 +434,7 @@ function last(f){
     f.text.value += "<textarea id="+qs+schemaId+qs+" style="+qs+"display:none;visibility:hidden;width:0;height:0;overflow:hidden;opacity:0;position:absolute;"+qs+">"+    
     '{' +    '"@context":"https://schema.org",' +    '"@type":"'+(isSeries?'TVSeries':'Movie')+'",' +    '"name":"'+cleanTitle+'",' +    '"image":"'+f.poster.value+'",' +    '"thumbnailUrl":"'+f.poster.value+'",' +    '"genre":"'+f.genre.value.replace(/"/g,'"')+'",' +    '"datePublished":"'+f.date.value+'",' +    '"inLanguage":"'+f.lng.value+'",' +    '"description":"'+cleanDesc+'",' +    '"duration":"'+f.dur.value+'",' +    '"actor":['+f.strcast.value.split(',').filter(Boolean).map(function(name){return '{"@type":"Person","name":"'+name.trim().replace(/"/g,'"')+'"}';}).join(',')+'],' +    '"director":{"@type":"Person","name":"'+(tmdbDirector || "Unknown")+'"},' +    '"aggregateRating":{' +    '"@type":"AggregateRating",' +    '"ratingValue":'+(parseFloat(tmdbRating) || 7.0)+',' +    '"bestRating":10,' +    '"worstRating":1,' +    '"ratingCount":'+((tmdbVoteCount && parseInt(tmdbVoteCount) > 0) ? parseInt(tmdbVoteCount) : 1000) +    '}' +    '}'+"</textarea>";        
     
-    /* PAGE RELOAD */
+    /* REFRESH PAGE */
     setTimeout(function(){
         location.reload();
     }, 1500);
